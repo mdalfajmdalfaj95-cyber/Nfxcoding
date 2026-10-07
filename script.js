@@ -591,7 +591,8 @@
     gut: $('rcGut'), src: $('rcSrc'), scroll: $('rcScroll'), vp: $('rcVp'), stage: $('rcStage'), scaler: $('rcScaler'),
     device: $('rcDevice'), frame: $('rcFrame'), note: $('rcNote'),
     start: $('rcStart'), pause: $('rcPause'), stop: $('rcStop'), test: $('rcTest'),
-    result: $('rcResult'), video: $('rcVideo'), resMeta: $('rcResMeta'), resClose: $('rcResClose'), resAgain: $('rcResAgain')
+    result: $('rcResult'), video: $('rcVideo'), resMeta: $('rcResMeta'), resClose: $('rcResClose'), resAgain: $('rcResAgain'),
+    mobile: $('rcMobile'), mobStart: $('rcMobStart'), mobClose: $('rcMobClose'), presExit: $('rcPresExit')
   };
   rc.main = rc.root.querySelector('.rc-main');
   const RC_STATUS = { idle: 'Ready', starting: 'Starting…', recording: 'Recording', paused: 'Paused', stopped: 'Stopped', testing: 'Testing' };
@@ -603,7 +604,9 @@
     stopped: 'Stopped. The video is kept in memory only.',
     testing: 'Showing the full project preview.'
   };
-  const rcs = { open: false, state: 'idle', file: null, step: 'html' };
+  const rcs = { open: false, state: 'idle', file: null, step: 'html', mobile: false, presenting: false };
+  const RC_NOTE_DESKTOP = RC_NOTE.idle;
+  const RC_NOTE_MOBILE = 'Phone: tap Start Recording, then Start Presentation, and use your phone’s screen recorder.';
 
   function rcStepOf(f) { return langOf(f.name); }
 
@@ -692,6 +695,8 @@
     animStop();                                   // leave Automatic Typing in a clean state
     flushSave();
     rcs.open = true;
+    rcs.mobile = rcDetectMobile();                // phones never use the desktop capture path
+    RC_NOTE.idle = rcs.mobile ? RC_NOTE_MOBILE : RC_NOTE_DESKTOP;
     rcCloseResult(); rcDiscardVideo();
     rc.project.textContent = current.name;
     rcs.file = activeFile && current.files.indexOf(activeFile) >= 0 ? activeFile : current.files[0];
@@ -702,11 +707,13 @@
     rcApplyDevice();
     rcRenderPreview();
     requestAnimationFrame(rcFit);
+    if (rcs.mobile) rcShowMobile(); else rcHideMobile();
   }
   function rcExit() {
     if (!rcs.open) return;
     if ((rcs.state === 'recording' || rcs.state === 'paused') && !window.confirm('Stop recording and discard it?')) return;
     rcAbort();                                    // stop capture, release the screen-share, drop any chunks
+    rcEndPresent(); rcHideMobile();
     rcCloseResult(); rcDiscardVideo();
     rcs.open = false;
     rcSetState('idle');
@@ -755,6 +762,7 @@
   const rcClock = () => performance.now();
 
   async function rcStartCapture() {
+    if (rcs.mobile) { rcShowMobile(); return; }   // mobile: never call getDisplayMedia / Element Capture / Region Capture
     const why = rcUnsupported();
     if (why) { rcFail(why); return; }
     rcCloseResult(); rcDiscardVideo();
@@ -860,6 +868,68 @@
     v.currentTime = 1e101;
     v.addEventListener('timeupdate', function reset() { v.removeEventListener('timeupdate', reset); v.currentTime = 0; });
   });
+
+  /* ---------- Mobile / Android: presentation mode ----------
+     Phones can't capture a page element, so the app doesn't try. It shows the existing
+     code + preview full-screen and the user records with the phone's own screen recorder. */
+  function rcDetectMobile() {
+    const nav = navigator, ua = nav.userAgent || '';
+    if (nav.userAgentData && nav.userAgentData.mobile === true) return true;
+    if (/Android|iPhone|iPad|iPod|Mobile|; wv\)/i.test(ua)) return true;               // phones, tablets, Android WebView
+    const touchOnly = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches && matchMedia('(hover: none)').matches);
+    const noCapture = !(nav.mediaDevices && nav.mediaDevices.getDisplayMedia);          // e.g. "Request desktop site", iPadOS
+    return touchOnly && (noCapture || Math.min(screen.width, screen.height) < 820);
+  }
+  function rcShowMobile() { rc.mobile.hidden = false; rc.mobStart.focus(); }
+  function rcHideMobile() { rc.mobile.hidden = true; }
+
+  let rcPresT = 0, rcWakeLock = null;
+  function rcPresIdle() { clearTimeout(rcPresT); rcPresT = setTimeout(() => rc.presExit.classList.add('idle'), 3000); }
+  function rcPresReveal() { rc.presExit.classList.remove('idle'); rcPresIdle(); }
+  async function rcWake(on) {                      // keep the screen awake while presenting (best effort)
+    try {
+      if (on) {
+        if (navigator.wakeLock && !rcWakeLock) {
+          rcWakeLock = await navigator.wakeLock.request('screen');
+          rcWakeLock.addEventListener('release', () => { rcWakeLock = null; });
+        }
+      } else if (rcWakeLock) { const w = rcWakeLock; rcWakeLock = null; await w.release(); }
+    } catch (e) { rcWakeLock = null; }
+  }
+  function rcStartPresent() {
+    rcHideMobile();
+    rcs.presenting = true;
+    rc.root.classList.add('rc-present');
+    document.body.classList.add('rc-presenting');
+    rc.presExit.hidden = false;
+    rcPresReveal();
+    try {                                          // cleaner recording: hide the browser bars when allowed
+      const r = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+      if (r && r.catch) r.catch(() => {});
+    } catch (e) { /* not allowed here (e.g. some WebViews) */ }
+    rcWake(true);
+    requestAnimationFrame(rcFit);
+  }
+  function rcEndPresent() {
+    if (!rcs.presenting) return;
+    rcs.presenting = false;
+    clearTimeout(rcPresT);
+    rc.root.classList.remove('rc-present');
+    document.body.classList.remove('rc-presenting');
+    rc.presExit.hidden = true;
+    rc.presExit.classList.remove('idle');
+    try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {}); } catch (e) { /* ignore */ }
+    rcWake(false);
+    requestAnimationFrame(rcFit);
+  }
+  rc.mobStart.addEventListener('click', rcStartPresent);
+  rc.mobClose.addEventListener('click', rcHideMobile);
+  rc.presExit.addEventListener('click', () => {
+    if (rc.presExit.classList.contains('idle')) { rcPresReveal(); return; }              // first tap only shows it
+    rcEndPresent();
+  });
+  rc.root.addEventListener('pointerdown', (e) => { if (rcs.presenting && !e.target.closest('#rcPresExit')) rcPresReveal(); });   // the button handles its own taps
+  document.addEventListener('visibilitychange', () => { if (rcs.presenting && document.visibilityState === 'visible') rcWake(true); });
 
   rc.start.addEventListener('click', () => { if (rcs.state === 'paused') rcResumeCapture(); else rcStartCapture(); });
   rc.pause.addEventListener('click', rcPauseCapture);
