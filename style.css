@@ -657,3 +657,26 @@ body.ws-open { padding-bottom: 0; overflow: hidden; }
 .rc-res-actions { margin-top: 14px; display: flex; justify-content: flex-end; gap: 8px; }
 .rc-res-actions .rc-btn, .rc-res-actions .rc-start { padding: 0 18px; }
 @media (max-width: 479px) { .rc-res-actions > * { flex: 1; } }
+
+
+/* ==========================================================
+   STEP 7 — Recording Mode typing speed + download
+   ========================================================== */
+.rc-speed { grid-column: 1 / -1; display: block; }
+.rc-speed select { width: 100%; height: 48px; border-radius: 13px; }
+.rc-start .ic { width: 18px; height: 18px; }
+.rc-res-actions a.rc-start { text-decoration: none; cursor: pointer; }
+.rc-src .caret { height: 1.2em; }
+@media (min-width: 960px) { .rc-speed { grid-column: auto; } .rc-speed select { width: auto; padding: 0 34px 0 16px; } }
+@media (max-width: 479px) { .rc-res-actions { flex-wrap: wrap; } .rc-res-actions a.rc-start { flex: 1 1 100%; order: -1; } }
+
+/* Video size selector */
+.rc-custom { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--muted); }
+.rc-custom[hidden] { display: none; }
+.rc-custom input {
+  width: 100%; max-width: 110px; height: 48px; padding: 0 12px; border-radius: 13px; text-align: center;
+  font: inherit; font-size: .88rem; font-weight: 600; color: var(--text);
+  background: rgba(255, 255, 255, .06); border: 1px solid var(--line-strong);
+}
+.rc-custom input:disabled, .rc-fmt select:disabled { opacity: .45; }
+@media (min-width: 960px) { .rc-custom { grid-column: auto; } .rc-custom input { width: 84px; } .rc-ctrl { flex-wrap: wrap; justify-content: flex-end; } }
