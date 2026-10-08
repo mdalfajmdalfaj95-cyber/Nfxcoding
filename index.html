@@ -28,6 +28,7 @@
     <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2.5"/></symbol>
     <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
     <symbol id="i-record" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></symbol>
     <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5.5 9.5A1.5 1.5 0 0 0 5.8 21h12.4a1.5 1.5 0 0 0 1.3-2.5L14 9V3"/><path d="M7.5 15h9"/></symbol>
   </svg>
 
@@ -154,6 +155,8 @@
         <legend>Project Type</legend>
         <label class="type"><input type="radio" name="ptype" value="html-css-js" checked><span class="type-box"><b>HTML + CSS + JS</b><small>index.html, style.css and script.js</small></span></label>
         <label class="type"><input type="radio" name="ptype" value="blank"><span class="type-box"><b>Blank Project</b><small>A single empty index.html</small></span></label>
+        <label class="type"><input type="radio" name="ptype" value="sample"><span class="type-box"><b>Sample Website</b><small>Pour-over timer, ready to type and record</small></span></label>
+        <label class="type"><input type="radio" name="ptype" value="sample2"><span class="type-box"><b>Sample Website 2</b><small>Palette roller, four buttons to test</small></span></label>
       </fieldset>
       <div class="modal-actions">
         <button type="button" class="btn-ghost" data-close>Cancel</button>
@@ -275,8 +278,31 @@
     </div>
 
     <footer class="rc-foot">
-      <p class="rc-note" id="rcNote">Ready. Video capture is not connected yet.</p>
+      <p class="rc-note" id="rcNote">Ready. Press Start Recording and the code types itself.</p>
       <div class="rc-ctrl">
+        <label class="dev rc-speed rc-fmt"><span class="sr">Video size</span>
+          <select id="rcFormat" title="Video size">
+            <option value="auto">Size: Screen</option>
+            <option value="reel">Reel 9:16</option>
+            <option value="post">Post 4:5</option>
+            <option value="square">Square 1:1</option>
+            <option value="wide">Wide 16:9</option>
+            <option value="custom">Custom…</option>
+          </select>
+        </label>
+        <span class="rc-custom" id="rcCustom" hidden>
+          <input id="rcCW" type="number" inputmode="numeric" min="240" max="3840" value="1080" aria-label="Width">
+          <i>×</i>
+          <input id="rcCH" type="number" inputmode="numeric" min="240" max="3840" value="1920" aria-label="Height">
+        </span>
+        <label class="dev rc-speed"><span class="sr">Typing speed</span>
+          <select id="rcSpeed" title="Typing speed">
+            <option value="1">Typing 1×</option>
+            <option value="1.5">Typing 1.5×</option>
+            <option value="2" selected>Typing 2×</option>
+            <option value="3">Typing 3×</option>
+          </select>
+        </label>
         <button class="rc-start" id="rcStart"><svg class="ic fill"><use href="#i-record"/></svg><span>Start Recording</span></button>
         <button class="rc-btn" id="rcPause" disabled><svg class="ic fill"><use href="#i-pause"/></svg><span>Pause</span></button>
         <button class="rc-btn" id="rcStop" disabled><svg class="ic fill"><use href="#i-stop"/></svg><span>Stop</span></button>
@@ -284,7 +310,7 @@
       </div>
     </footer>
 
-    <!-- Playback of the finished recording (kept in memory only) -->
+    <!-- Playback of the finished recording (kept in memory until downloaded or closed) -->
     <div class="rc-result" id="rcResult" hidden>
       <div class="rc-res-panel" role="dialog" aria-modal="true" aria-labelledby="rcResTitle">
         <h2 id="rcResTitle">Recording preview</h2>
@@ -292,7 +318,8 @@
         <p class="rc-res-meta" id="rcResMeta"></p>
         <div class="rc-res-actions">
           <button class="rc-btn" id="rcResClose" type="button">Close</button>
-          <button class="rc-start" id="rcResAgain" type="button"><svg class="ic fill"><use href="#i-record"/></svg><span>Record Again</span></button>
+          <button class="rc-btn" id="rcResAgain" type="button"><svg class="ic fill"><use href="#i-record"/></svg><span>Record Again</span></button>
+          <a class="rc-start" id="rcDownload" download="reel.webm" role="button"><svg class="ic"><use href="#i-download"/></svg><span>Download</span></a>
         </div>
       </div>
     </div>
