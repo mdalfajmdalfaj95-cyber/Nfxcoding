@@ -55,6 +55,20 @@
     blank: '<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1">\n  <title>Untitled</title>\n</head>\n<body>\n\n</body>\n</html>\n'
   };
 
+  /* ---------- Sample website (Pour-over timer) ---------- */
+  const SAMPLE = {
+    "index.html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Pour-Over Timer</title>\n  <link rel=\"stylesheet\" href=\"style.css\">\n</head>\n<body>\n  <main class=\"app\">\n    <h1>Pour-over,<br>by the second.</h1>\n    <p class=\"lead\">A V60 timer that scales to your cups.</p>\n\n    <section class=\"dose\" aria-label=\"Dose\">\n      <button id=\"minus\" aria-label=\"Fewer cups\">&minus;</button>\n      <div class=\"amount\"><b id=\"cups\">2</b><span>cups</span></div>\n      <button id=\"plus\" aria-label=\"More cups\">+</button>\n    </section>\n\n    <p class=\"recipe\">\n      <span>Coffee <b id=\"coffee\">30 g</b></span>\n      <span>Water <b id=\"water\">500 ml</b></span>\n    </p>\n\n    <section class=\"dial\">\n      <svg viewBox=\"0 0 120 120\" aria-hidden=\"true\">\n        <circle class=\"track\" cx=\"60\" cy=\"60\" r=\"54\"/>\n        <circle class=\"bar\" id=\"ring\" cx=\"60\" cy=\"60\" r=\"54\"/>\n      </svg>\n      <div class=\"clock\" id=\"clock\">0:00</div>\n    </section>\n\n    <ol class=\"steps\">\n      <li><span>0:00</span>Bloom the grounds</li>\n      <li><span>0:30</span>First pour</li>\n      <li><span>1:15</span>Second pour</li>\n      <li><span>2:00</span>Let it drain</li>\n    </ol>\n\n    <button class=\"go\" id=\"start\">Start brew</button>\n  </main>\n  <script src=\"script.js\"></script>\n</body>\n</html>\n",
+    "style.css": ":root {\n  --ink: #0f1b24;\n  --card: #182a37;\n  --line: #2a4254;\n  --crema: #f0c27a;\n  --mint: #9fe3cb;\n  --text: #e8eef2;\n  --dim: #8aa0ae;\n}\n\n* { box-sizing: border-box; margin: 0; }\n\nbody {\n  min-height: 100vh;\n  display: grid;\n  place-items: center;\n  padding: 24px 18px;\n  font-family: system-ui, sans-serif;\n  color: var(--text);\n  background: radial-gradient(120% 60% at 50% 0%, #1c3445, var(--ink) 70%);\n}\n\n.app { width: 100%; max-width: 360px; display: grid; gap: 16px; }\n\nh1 { font: 700 2rem/1.05 Georgia, serif; letter-spacing: -.02em; }\n.lead { margin-top: -8px; font-size: .92rem; color: var(--dim); }\n\n.dose {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 10px;\n  border-radius: 20px;\n  background: var(--card);\n  border: 1px solid var(--line);\n}\n.dose button {\n  width: 48px;\n  height: 48px;\n  border: 0;\n  border-radius: 14px;\n  font-size: 1.5rem;\n  color: var(--text);\n  background: #223a4a;\n  cursor: pointer;\n  transition: transform .15s, background .2s;\n}\n.dose button:active { transform: scale(.9); background: var(--crema); color: var(--ink); }\n.amount { text-align: center; }\n.amount b { display: block; font: 700 2rem/1 Georgia, serif; }\n.amount span { font-size: .8rem; color: var(--dim); }\n\n.recipe { display: flex; justify-content: space-around; font-size: .9rem; color: var(--dim); }\n.recipe b { font-weight: 600; color: var(--crema); }\n\n.dial { position: relative; width: 190px; height: 190px; margin: 0 auto; }\n.dial svg { width: 100%; height: 100%; transform: rotate(-90deg); }\n.dial circle { fill: none; stroke-width: 7; }\n.track { stroke: var(--line); }\n.bar {\n  stroke: var(--mint);\n  stroke-linecap: round;\n  stroke-dasharray: 339.3;\n  stroke-dashoffset: 339.3;\n}\n.clock {\n  position: absolute;\n  inset: 0;\n  display: grid;\n  place-items: center;\n  font: 700 2.6rem Georgia, serif;\n  font-variant-numeric: tabular-nums;\n}\n\n.steps { list-style: none; padding: 0; display: grid; gap: 6px; }\n.steps li {\n  display: flex;\n  gap: 12px;\n  padding: 10px 14px;\n  border-radius: 12px;\n  font-size: .92rem;\n  color: var(--dim);\n  transition: background .25s, color .25s;\n}\n.steps span { width: 36px; font-variant-numeric: tabular-nums; }\n.steps .done { color: var(--mint); }\n.steps .now { color: var(--ink); background: var(--crema); font-weight: 600; }\n\n.go {\n  height: 54px;\n  border: 0;\n  border-radius: 16px;\n  font: 700 1rem system-ui, sans-serif;\n  color: var(--ink);\n  background: var(--mint);\n  cursor: pointer;\n  transition: transform .15s;\n}\n.go:active { transform: scale(.97); }\n",
+    "script.js": "const cupsEl = document.getElementById('cups');\nconst coffeeEl = document.getElementById('coffee');\nconst waterEl = document.getElementById('water');\nconst startBtn = document.getElementById('start');\nconst ring = document.getElementById('ring');\nconst clock = document.getElementById('clock');\nconst steps = [...document.querySelectorAll('.steps li')];\n\nconst TOTAL = 150;   // brew length in seconds\nconst SPEED = 8;     // preview runs faster so you can watch it\nconst CIRC = 2 * Math.PI * 54;\nconst STEP_AT = [0, 30, 75, 120];\n\nlet cups = 2;\nlet timer = null;\nlet t = 0;\n\nfunction renderDose() {\n  cupsEl.textContent = cups;\n  coffeeEl.textContent = cups * 15 + ' g';\n  waterEl.textContent = cups * 250 + ' ml';\n}\n\nfunction fmt(s) {\n  return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');\n}\n\nfunction draw() {\n  ring.style.strokeDashoffset = CIRC * (1 - t / TOTAL);\n  clock.textContent = fmt(t);\n  const now = STEP_AT.filter((x) => t >= x).length - 1;\n  steps.forEach((li, n) => {\n    li.classList.toggle('now', !!timer && n === now);\n    li.classList.toggle('done', n < now || t >= TOTAL);\n  });\n}\n\ndocument.getElementById('minus').addEventListener('click', () => {\n  cups = Math.max(1, cups - 1);\n  renderDose();\n});\n\ndocument.getElementById('plus').addEventListener('click', () => {\n  cups = Math.min(6, cups + 1);\n  renderDose();\n});\n\nstartBtn.addEventListener('click', () => {\n  if (timer) {\n    clearInterval(timer);\n    timer = null;\n    t = 0;\n    startBtn.textContent = 'Start brew';\n    draw();\n    return;\n  }\n  t = 0;\n  startBtn.textContent = 'Reset';\n  timer = setInterval(() => {\n    t += SPEED / 20;\n    if (t >= TOTAL) {\n      t = TOTAL;\n      clearInterval(timer);\n      timer = null;\n      startBtn.textContent = 'Start brew';\n    }\n    draw();\n  }, 50);\n});\n\nrenderDose();\ndraw();\n"
+  };
+
+  const SAMPLE2 = {
+    "index.html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Palette Roller</title>\n  <link rel=\"stylesheet\" href=\"style.css\">\n</head>\n<body>\n  <main class=\"app\">\n    <h1>Palette roller</h1>\n    <p class=\"lead\">Pick a mood, then roll five colors.</p>\n\n    <div class=\"modes\">\n      <button class=\"mode on\" data-mode=\"warm\">Warm</button>\n      <button class=\"mode\" data-mode=\"cool\">Cool</button>\n      <button class=\"mode\" data-mode=\"wild\">Wild</button>\n    </div>\n\n    <div class=\"swatches\">\n      <div class=\"sw\"><span>#000000</span></div>\n      <div class=\"sw\"><span>#000000</span></div>\n      <div class=\"sw\"><span>#000000</span></div>\n      <div class=\"sw\"><span>#000000</span></div>\n      <div class=\"sw\"><span>#000000</span></div>\n    </div>\n\n    <button class=\"roll\" id=\"roll\">Roll palette</button>\n  </main>\n  <script src=\"script.js\"></script>\n</body>\n</html>\n",
+    "style.css": "* { box-sizing: border-box; margin: 0; }\n\nbody {\n  min-height: 100vh;\n  display: grid;\n  place-items: center;\n  padding: 24px 18px;\n  font-family: system-ui, sans-serif;\n  color: #f4f4f8;\n  background: #14141a;\n}\n\n.app { width: 100%; max-width: 360px; display: grid; gap: 16px; }\n\nh1 { font: 800 2.2rem/1 system-ui, sans-serif; letter-spacing: -.04em; }\n.lead { margin-top: -8px; font-size: .92rem; color: #9a9ab0; }\n\n.modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }\n.mode {\n  height: 44px;\n  border: 1px solid #34344a;\n  border-radius: 12px;\n  font: 600 .9rem system-ui, sans-serif;\n  color: #c9c9dc;\n  background: transparent;\n  cursor: pointer;\n  transition: background .2s, color .2s;\n}\n.mode.on { color: #14141a; background: #f4f4f8; border-color: #f4f4f8; }\n\n.swatches { display: grid; border-radius: 20px; overflow: hidden; }\n.sw {\n  height: 78px;\n  display: flex;\n  align-items: center;\n  padding: 0 20px;\n  font: 600 1rem ui-monospace, Menlo, monospace;\n  transition: background .35s;\n}\n\n.roll {\n  height: 54px;\n  border: 0;\n  border-radius: 16px;\n  font: 700 1rem system-ui, sans-serif;\n  color: #14141a;\n  background: #f4f4f8;\n  cursor: pointer;\n  transition: transform .15s;\n}\n.roll:active { transform: scale(.97); }\n",
+    "script.js": "const swatches = [...document.querySelectorAll('.sw')];\nconst modes = [...document.querySelectorAll('.mode')];\n\nconst RANGES = { warm: [0, 50], cool: [170, 260], wild: [0, 360] };\nlet mode = 'warm';\n\nconst rand = (a, b) => a + Math.random() * (b - a);\n\nfunction toHex(h, s, l) {\n  s /= 100;\n  l /= 100;\n  const k = (n) => (n + h / 30) % 12;\n  const a = s * Math.min(l, 1 - l);\n  const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));\n  return '#' + [f(0), f(8), f(4)]\n    .map((x) => Math.round(x * 255).toString(16).padStart(2, '0'))\n    .join('');\n}\n\nfunction roll() {\n  const [from, to] = RANGES[mode];\n  swatches.forEach((sw, i) => {\n    const hex = toHex(rand(from, to), rand(55, 85), 30 + i * 10 + rand(-4, 4));\n    sw.style.background = hex;\n    sw.style.color = i > 2 ? '#111' : '#fff';\n    sw.querySelector('span').textContent = hex;\n  });\n}\n\nmodes.forEach((btn) => {\n  btn.addEventListener('click', () => {\n    mode = btn.dataset.mode;\n    modes.forEach((m) => m.classList.toggle('on', m === btn));\n    roll();\n  });\n});\n\ndocument.getElementById('roll').addEventListener('click', roll);\nroll();\n"
+  };
+  const SAMPLES = { sample: SAMPLE, sample2: SAMPLE2 };
+
   /* ---------- Storage ---------- */
   let projects = [];
   let current = null;
@@ -69,7 +83,7 @@
     const now = new Date().toISOString();
     const files = type === 'blank'
       ? [{ name: 'index.html', content: STARTER.blank }]
-      : ['index.html', 'style.css', 'script.js'].map((n) => ({ name: n, content: STARTER[n] }));
+      : ['index.html', 'style.css', 'script.js'].map((n) => ({ name: n, content: (SAMPLES[type] || STARTER)[n] }));
     const p = { id: uid(), name: name, type: type, files: files, kept: false, created: now, updated: now };
     projects.unshift(p);
     persist();
@@ -132,9 +146,9 @@
   el.name.addEventListener('input', () => el.name.classList.remove('err'));
   el.form.addEventListener('submit', (e) => {
     e.preventDefault();
-    const name = el.name.value.trim();
-    if (!name) { el.name.classList.add('err'); el.name.focus(); return; }
     const type = el.form.elements.ptype.value;
+    const name = el.name.value.trim() || ({ sample: 'Pour-Over Timer', sample2: 'Palette Roller' }[type] || '');
+    if (!name) { el.name.classList.add('err'); el.name.focus(); return; }
     const p = createProject(name, type);
     el.modal.hidden = true;
     renderProjects();
@@ -596,11 +610,11 @@
   rc.main = rc.root.querySelector('.rc-main');
   const RC_STATUS = { idle: 'Ready', starting: 'Starting…', recording: 'Recording', paused: 'Paused', stopped: 'Stopped', testing: 'Testing' };
   const RC_NOTE = {
-    idle: 'Ready. Records the code and preview area only.',
+    idle: 'Ready. Press Start Recording: the code types itself and the preview builds live.',
     starting: 'Choose “This Tab” in the browser prompt to begin.',
-    recording: 'Recording the code and preview area.',
+    recording: 'Recording. Typing HTML, CSS and JS automatically, then testing the page.',
     paused: 'Paused. Resume to continue the same video.',
-    stopped: 'Stopped. The video is kept in memory only.',
+    stopped: 'Stopped. Download the video before closing the preview.',
     testing: 'Showing the full project preview.'
   };
   const rcs = { open: false, state: 'idle', file: null, step: 'html' };
@@ -630,7 +644,7 @@
       b.className = f === rcs.file ? 'on' : '';
       b.innerHTML = '<i class="f-' + langOf(f.name) + '"></i>';
       b.append(f.name);
-      b.addEventListener('click', () => { rcShowFile(f); });
+      b.addEventListener('click', () => { if (rcTy.run) return; rcShowFile(f); });
       rc.files.appendChild(b);
     });
   }
@@ -663,6 +677,8 @@
     rc.start.querySelector('span').textContent = paused ? 'Resume Recording' : 'Start Recording';
     rc.pause.disabled = !live;
     rc.stop.disabled = !(live || paused);
+    const lock = live || paused || s === 'starting';
+    ['rcFormat', 'rcCW', 'rcCH'].forEach((id) => { const e = $(id); if (e) e.disabled = lock; });
   }
 
   /* Large preview: full project, same device the Workspace preview uses */
@@ -720,24 +736,14 @@
   $('rcExit').addEventListener('click', rcExit);
 
   /* ---------- Real capture (Step 1: record / pause / resume / stop) ----------
-     Only the element returned by rcCaptureTarget() is recorded — never the whole
-     screen. Chrome/Edge: Element Capture (preferred) or Region Capture. If neither
-     exists, or the user shares anything but this tab, nothing is recorded. */
+     Only the rectangle of rcCaptureTarget() is recorded (cropped on a canvas),
+     never the whole screen. The user must share THIS TAB. */
   const rcCaptureTarget = () => rc.main;          // ← the ONE place that decides what gets recorded (code + preview)
   const rec = { recorder: null, chunks: [], session: 0, t0: 0, acc: 0, url: '' };
 
-  function rcCaptureMethod() {
-    const T = window.BrowserCaptureMediaStreamTrack;
-    if (window.RestrictionTarget && T && T.prototype.restrictTo) return 'element';
-    if (window.CropTarget && T && T.prototype.cropTo) return 'region';
-    return '';
-  }
   function rcUnsupported() {
-    if (!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) || !window.MediaRecorder) {
-      return 'Recording isn’t supported on this browser or device. Use Chrome or Edge on a desktop, over https or localhost.';
-    }
-    if (!rcCaptureMethod()) {
-      return 'This browser can’t record just the code and preview area (it needs Element or Region Capture, available in desktop Chrome and Edge). Nothing was recorded.';
+    if (!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) || !window.MediaRecorder || !(window.HTMLCanvasElement && HTMLCanvasElement.prototype.captureStream)) {
+      return 'Recording isn’t supported on this browser or device. Use Chrome, Edge or Opera on a desktop, over https or localhost (or open the file directly).';
     }
     return '';
   }
@@ -745,14 +751,59 @@
     return ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'].find((t) => MediaRecorder.isTypeSupported(t)) || '';
   }
   function rcStopTracks(stream) { if (stream) stream.getTracks().forEach((t) => { try { t.stop(); } catch (e) { /* already stopped */ } }); }
-  function rcFail(msg) { rcSetState('idle'); rc.note.textContent = msg; rc.note.classList.add('err'); }
+  function rcFail(msg) { rcTyHalt(); rcRestoreView(); rcSetState('idle'); rc.note.textContent = msg; rc.note.classList.add('err'); }
   function rcErrorText(err) {
     const n = err && err.name;
     if (n === 'NotAllowedError') return 'Screen sharing was cancelled, so nothing was recorded.';
     if (n === 'RcSurface') return 'Please choose “This Tab” in the sharing prompt. Nothing was recorded.';
-    return 'Couldn’t limit the capture to the code and preview area, so nothing was recorded' + (n ? ' (' + n + ')' : '') + '.';
+    if (n === 'RcNoFrames') return 'The browser shared the tab but sent no picture, so nothing was recorded. Try again and pick “This Tab”.';
+    return 'Couldn’t start the recording' + (n ? ' (' + n + ')' : '') + '.';
   }
   const rcClock = () => performance.now();
+
+  /* Capture pipeline: share THIS TAB -> hidden <video> -> canvas that draws only the code + preview
+     rectangle -> canvas.captureStream() -> MediaRecorder. Works in any Chromium browser, it does not
+     depend on Element Capture / Region Capture, and the canvas keeps emitting frames even when the page is still. */
+  /* ---------- Video size (Reel / Post / Square / Wide / Custom) ---------- */
+  const RC_FORMATS = { reel: [1080, 1920], post: [1080, 1350], square: [1080, 1080], wide: [1920, 1080] };
+  const rcEven = (n) => Math.round(n / 2) * 2;
+  function rcFormatSpec() {
+    const v = $('rcFormat').value;
+    if (v === 'auto') return null;
+    if (v === 'custom') {
+      const cl = (x, d) => Math.min(3840, Math.max(240, rcEven(parseInt(x, 10) || d)));
+      return [cl($('rcCW').value, 1080), cl($('rcCH').value, 1920)];
+    }
+    return RC_FORMATS[v];
+  }
+  /* Where the code and the phone preview go inside a W×H video */
+  function rcLayout(W, H) {
+    const P = Math.round(Math.min(W, H) * 0.04);
+    if (H / W >= 1.5) {                                   // tall: code on top, phone below
+      const hc = Math.round((H - 3 * P) * 0.4);
+      return { code: { x: P, y: P, w: W - 2 * P, h: hc }, view: { x: P, y: 2 * P + hc, w: W - 2 * P, h: H - 3 * P - hc } };
+    }
+    const wc = Math.round((W - 3 * P) * 0.58);            // wide / square: code left, phone right
+    return { code: { x: P, y: P, w: wc, h: H - 2 * P }, view: { x: 2 * P + wc, y: P, w: W - 3 * P - wc, h: H - 2 * P } };
+  }
+  function rcFitBox(box, sw, sh) {                        // "contain": keep the aspect ratio, centre in the box
+    const k = Math.min(box.w / sw, box.h / sh), w = sw * k, h = sh * k;
+    return { x: box.x + (box.w - w) / 2, y: box.y + (box.h - h) / 2, w: w, h: h };
+  }
+  function rcFormatNote() {
+    const f = $('rcFormat'), sp = rcFormatSpec();
+    $('rcCustom').hidden = f.value !== 'custom';
+    if (rcs.state === 'idle' || rcs.state === 'stopped') {
+      rc.note.classList.remove('err');
+      rc.note.textContent = sp ? 'Video size ' + sp[0] + '×' + sp[1] + '. The video is arranged for this size, the screen keeps its normal look.' : RC_NOTE.idle;
+    }
+  }
+  $('rcFormat').addEventListener('change', rcFormatNote);
+  $('rcCW').addEventListener('input', rcFormatNote);
+  $('rcCH').addEventListener('input', rcFormatNote);
+
+  const rcWait = (ms) => new Promise((r) => setTimeout(r, ms));
+  function rcRelease(mr) { rcStopTracks(mr.rcStream); if (mr.rcDrawStop) mr.rcDrawStop(); }
 
   async function rcStartCapture() {
     const why = rcUnsupported();
@@ -760,11 +811,8 @@
     rcCloseResult(); rcDiscardVideo();
     const sid = ++rec.session;
     rcSetState('starting');
-    let stream = null;
+    let stream = null, drawStop = null;
     try {
-      const method = rcCaptureMethod();
-      const el0 = rcCaptureTarget();
-      const target = method === 'element' ? await RestrictionTarget.fromElement(el0) : await CropTarget.fromElement(el0);
       stream = await navigator.mediaDevices.getDisplayMedia({
         video: { frameRate: { ideal: 30 } }, audio: false,
         preferCurrentTab: true, selfBrowserSurface: 'include', surfaceSwitching: 'exclude', monitorTypeSurfaces: 'exclude', systemAudio: 'exclude'
@@ -773,14 +821,73 @@
       const track = stream.getVideoTracks()[0];
       const surface = (track.getSettings() || {}).displaySurface;
       if (surface && surface !== 'browser') { const e = new Error('not this tab'); e.name = 'RcSurface'; throw e; }
-      if (method === 'element') await track.restrictTo(target); else await track.cropTo(target);   // limit BEFORE any frame is recorded
-      if (sid !== rec.session) { rcStopTracks(stream); return; }
+
+      const vid = document.createElement('video');
+      vid.muted = true; vid.playsInline = true; vid.srcObject = stream;
+      vid.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
+      document.body.appendChild(vid);
+      await vid.play();
+      for (let i = 0; i < 60 && !(vid.videoWidth > 0 && vid.readyState >= 2); i++) await rcWait(50);
+      if (!(vid.videoWidth > 0)) { const e = new Error('no frames'); e.name = 'RcNoFrames'; vid.remove(); throw e; }
+      if (sid !== rec.session) { vid.remove(); rcStopTracks(stream); return; }
+      await rcWait(400);                                                  // let the "sharing" bar finish shifting the layout
+
+      const target = rcCaptureTarget();
+      const spec = rcFormatSpec();
+      let cw, ch;
+      if (spec) { cw = spec[0]; ch = spec[1]; }
+      else {
+        const r0 = target.getBoundingClientRect();
+        const k0 = vid.videoWidth / window.innerWidth;
+        cw = r0.width * k0; ch = r0.height * k0;
+        const fit = Math.min(1, 1920 / cw);
+        cw = Math.max(2, rcEven(cw * fit)); ch = Math.max(2, rcEven(ch * fit));
+      }
+      const lay = spec ? rcLayout(cw, ch) : null;
+      const codeEl = rc.root.querySelector('.rc-code');
+      const cv = document.createElement('canvas');
+      cv.width = cw; cv.height = ch;
+      const ctx = cv.getContext('2d', { alpha: false });
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+      rec.frames = 0;
+      let raf = 0, live = true;
+      const paint = (el, box, kx, ky) => {
+        const r = el.getBoundingClientRect();
+        if (r.width <= 0 || r.height <= 0) return;
+        const d = rcFitBox(box, r.width, r.height);
+        ctx.save();
+        if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(d.x, d.y, d.w, d.h, Math.min(d.w, d.h) * 0.025); ctx.clip(); }
+        ctx.drawImage(vid, r.left * kx, r.top * ky, r.width * kx, r.height * ky, d.x, d.y, d.w, d.h);
+        ctx.restore();
+      };
+      const draw = () => {
+        if (!live) return;
+        const kx = vid.videoWidth / window.innerWidth, ky = vid.videoHeight / window.innerHeight;
+        if (vid.readyState >= 2) {
+          if (lay) {
+            ctx.fillStyle = '#0b0c12'; ctx.fillRect(0, 0, cw, ch);
+            paint(codeEl, lay.code, kx, ky);
+            paint(rc.device, lay.view, kx, ky);
+            rec.frames++;
+          } else {
+            const r = target.getBoundingClientRect();
+            if (r.width > 0 && r.height > 0) {
+              ctx.drawImage(vid, r.left * kx, r.top * ky, r.width * kx, r.height * ky, 0, 0, cw, ch);
+              rec.frames++;
+            }
+          }
+        }
+        raf = requestAnimationFrame(draw);
+      };
+      drawStop = () => { live = false; cancelAnimationFrame(raf); vid.pause(); vid.srcObject = null; vid.remove(); };
+      draw();
+      const out = cv.captureStream(30);
 
       const mime = rcPickMime();
-      const opts = { videoBitsPerSecond: 6000000 };
+      const opts = { videoBitsPerSecond: Math.min(12000000, Math.max(5000000, Math.round(cw * ch * 3))) };
       if (mime) opts.mimeType = mime;
-      const mr = new MediaRecorder(stream, opts);
-      mr.rcStream = stream; mr.rcDiscard = false;
+      const mr = new MediaRecorder(out, opts);
+      mr.rcStream = stream; mr.rcDiscard = false; mr.rcDrawStop = drawStop;
       rec.chunks = []; rec.acc = 0;
       mr.ondataavailable = (e) => { if (rec.recorder === mr && e.data && e.data.size) rec.chunks.push(e.data); };
       mr.onstop = () => rcFinish(mr);
@@ -790,7 +897,9 @@
       mr.start(1000);
       rec.t0 = rcClock();
       rcSetState('recording');
+      rcTyStart();
     } catch (err) {
+      if (drawStop) drawStop();
       rcStopTracks(stream);
       if (sid === rec.session) rcFail(rcErrorText(err));
     }
@@ -799,6 +908,7 @@
     const mr = rec.recorder;
     if (!mr || mr.state !== 'recording') return;
     mr.pause();
+    rcTyPause();
     rec.acc += rcClock() - rec.t0;
     rcSetState('paused');
   }
@@ -806,6 +916,7 @@
     const mr = rec.recorder;
     if (!mr || mr.state !== 'paused') return;
     mr.resume();
+    rcTyResume();
     rec.t0 = rcClock();
     rcSetState('recording');
   }
@@ -813,15 +924,17 @@
     const mr = rec.recorder;
     if (!mr || mr.state === 'inactive') return;
     if (mr.state === 'recording') rec.acc += rcClock() - rec.t0;
+    rcTyHalt();
     rc.pause.disabled = true; rc.stop.disabled = true;
+    try { mr.requestData(); } catch (e) { /* flush the last chunk */ }
     try { mr.stop(); } catch (e) { rcAbort(); rcFail('Couldn’t finish the recording. Nothing was saved.'); }
   }
   /* Recorder finished: join the chunks into one Blob that lives only in memory */
   function rcFinish(mr) {
-    rcStopTracks(mr.rcStream);
+    rcRelease(mr);
     if (mr.rcDiscard) return;
     if (rec.recorder === mr) rec.recorder = null;
-    if (!rec.chunks.length) { rcFail('No video data was captured.'); return; }
+    if (!rec.chunks.length) { rcFail('No video data was captured (frames drawn: ' + (rec.frames || 0) + '). Try again.'); return; }
     const blob = new Blob(rec.chunks, { type: mr.mimeType || 'video/webm' });
     rec.chunks = [];
     rec.url = URL.createObjectURL(blob);
@@ -830,18 +943,25 @@
   }
   /* Drop everything without saving (exit, error, closed while prompt was open) */
   function rcAbort() {
+    rcTyHalt();
     rec.session++;
     const mr = rec.recorder;
     rec.recorder = null;
     rec.chunks = [];
-    if (mr) { mr.rcDiscard = true; if (mr.state !== 'inactive') { try { mr.stop(); } catch (e) { /* ignore */ } } rcStopTracks(mr.rcStream); }
+    if (mr) { mr.rcDiscard = true; if (mr.state !== 'inactive') { try { mr.stop(); } catch (e) { /* ignore */ } } rcRelease(mr); }
   }
 
   /* Playback preview */
   const rcFmtTime = (ms) => { const s = Math.round(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
   function rcShowResult(blob) {
     rc.video.src = rec.url;
-    rc.resMeta.textContent = rcFmtTime(rec.acc) + ' · ' + (blob.size / 1048576).toFixed(1) + ' MB · ' + (blob.type.split(';')[0].replace('video/', '') || 'video').toUpperCase() + ' — kept in memory only; closing discards it.';
+    const dl = $('rcDownload');
+    const d = new Date(), p2 = (n) => String(n).padStart(2, '0');
+    const slug = (current ? current.name : 'reel').toLowerCase().replace(/[^a-z0-9\u0980-\u09ff]+/g, '-').replace(/^-+|-+$/g, '') || 'reel';
+    dl.href = rec.url;
+    dl.download = slug + '-' + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + '-' + p2(d.getHours()) + p2(d.getMinutes()) + '.' + (/mp4/.test(blob.type) ? 'mp4' : 'webm');
+    rec.saved = false;
+    rc.resMeta.textContent = rcFmtTime(rec.acc) + ' · ' + (blob.size / 1048576).toFixed(1) + ' MB · ' + (blob.type.split(';')[0].replace('video/', '') || 'video').toUpperCase() + ' — download it before closing.';
     rc.result.hidden = false;
     rc.resClose.focus();
   }
@@ -864,14 +984,175 @@
   rc.start.addEventListener('click', () => { if (rcs.state === 'paused') rcResumeCapture(); else rcStartCapture(); });
   rc.pause.addEventListener('click', rcPauseCapture);
   rc.stop.addEventListener('click', rcStopCapture);
-  rc.resClose.addEventListener('click', () => { rcCloseResult(); rcDiscardVideo(); });
-  rc.resAgain.addEventListener('click', () => { rcCloseResult(); rcDiscardVideo(); rcStartCapture(); });
+  const rcConfirmDiscard = () => rec.saved || !rec.url || window.confirm('This video has not been downloaded. Discard it?');
+  $('rcDownload').addEventListener('click', () => { rec.saved = true; });
+  rc.resClose.addEventListener('click', () => { if (!rcConfirmDiscard()) return; rcCloseResult(); rcDiscardVideo(); rcRestoreView(); });
+  rc.resAgain.addEventListener('click', () => { if (!rcConfirmDiscard()) return; rcCloseResult(); rcDiscardVideo(); rcStartCapture(); });
   rc.test.addEventListener('click', () => {
+    if (rcTy.run) return;
     rcs.step = 'test';
     rcUpdateSeq();
     rcRenderPreview();                            // reload the finished project
     if (rcs.state === 'idle' || rcs.state === 'stopped') rcSetState('testing');
   });
+
+  /* ==========================================================
+     STEP 7 — Automatic typing inside Recording Mode
+     Types every project file in order (HTML → CSS → JS) into the
+     read-only code view while the preview builds up live, then
+     "tests" the page by tapping its buttons, then stops the video.
+     It only READS the project; nothing is ever edited.
+     ========================================================== */
+  const rcSpeedEl = $('rcSpeed');
+  const RC_ORDER = { html: 0, css: 1, js: 2 };
+  const rcTy = { run: false, paused: false, raf: 0, phase: 'type', wait: 0, last: 0, files: [], fi: 0, file: null,
+    text: '', pos: 0, acc: 0, due: 0, lines: 0, typed: {}, lastPrev: 0, prevPos: -1, count: 0, k: 0 };
+
+  /* Small helper injected into the recording preview only: reports how many buttons exist and clicks them on request */
+  const RC_INJECT = '<script>(function(){var S="button:not([type=submit]),[role=button]";function L(){return Array.prototype.slice.call(document.querySelectorAll(S))}' +
+    'window.addEventListener("message",function(e){var d=e.data;if(d&&d.rcClick!=null){var el=L()[d.rcClick];if(el)el.click()}});' +
+    'function hi(){parent.postMessage({rcCount:L().length},"*")}if(document.readyState==="complete")hi();else window.addEventListener("load",hi)})()<\/script>';
+  window.addEventListener('message', (e) => {
+    if (e.source === rc.frame.contentWindow && e.data && typeof e.data.rcCount === 'number') rcTy.count = e.data.rcCount;
+  });
+
+  /* Preview document where files that are not typed yet are empty */
+  function rcDoc(map) {
+    const look = (n) => (n in map) ? map[n] : (current.files.some((x) => x.name === n) ? '' : null);
+    let html = look('index.html') || '';
+    html = html.replace(/<link[^>]*href=["']([^"']+)["'][^>]*>/gi, (m, h) => {
+      const x = look(h); return x !== null && /stylesheet/i.test(m) ? '<style>' + x + '</style>' : m;
+    });
+    html = html.replace(/<script([^>]*?)\ssrc=["']([^"']+)["']([^>]*)>\s*<\/script>/gi, (m, a, h, b) => {
+      const x = look(h); return x !== null ? '<script' + a + b + '>' + x.replace(/<\/script/gi, '<\\/script') + '<\/script>' : m;
+    });
+    return html + RC_INJECT;
+  }
+
+  function rcTyRender(text, lang) {
+    rc.src.innerHTML = hlText(text, lang) + '<span class="caret"></span>\n';
+    const n = text.split('\n').length;
+    if (n !== rcTy.lines) {
+      rcTy.lines = n;
+      let g = '';
+      for (let i = 1; i <= n; i++) g += i + '\n';
+      rc.gut.textContent = g;
+    }
+    const c = rc.src.querySelector('.caret');
+    if (!c) return;
+    const sr = rc.scroll.getBoundingClientRect(), cr = c.getBoundingClientRect();
+    if (cr.bottom > sr.bottom - 24) rc.scroll.scrollTop += cr.bottom - sr.bottom + 48;
+    if (cr.right > sr.right - 24) rc.scroll.scrollLeft += cr.right - sr.right + 60;
+    else if (cr.left < sr.left + 70) rc.scroll.scrollLeft = 0;
+  }
+
+  /* Live preview while typing (throttled; unfinished tags hidden; JS only runs when it parses) */
+  function rcTyPreview(force) {
+    const T = rcTy, now = performance.now();
+    if (!force && (now - T.lastPrev < 250 || T.prevPos === T.pos)) return;
+    const lang = langOf(T.file.name);
+    let t = T.text.slice(0, T.pos);
+    if (lang === 'html') t = t.replace(/<[^>]*$/, '');
+    else if (lang === 'js') { try { new Function(t); } catch (e) { return; } }
+    T.lastPrev = now; T.prevPos = T.pos;
+    const map = Object.assign({}, T.typed);
+    map[T.file.name] = t;
+    rc.frame.srcdoc = rcDoc(map);
+  }
+
+  function rcBeginFile(i) {
+    const T = rcTy, f = T.files[i], lang = langOf(f.name);
+    T.fi = i; T.file = f;
+    rcs.file = f; rcs.step = rcStepOf(f);
+    rcBuildFiles(); rcUpdateSeq();
+    rc.lang.textContent = lang.toUpperCase();
+    T.text = f.content.replace(/\r\n?/g, '\n');
+    T.pos = 0; T.acc = 0; T.due = i === 0 ? 700 : 350; T.lines = 0; T.lastPrev = 0; T.prevPos = -1;
+    anim.text = T.text; anim.file = f; anim.lead = true; anim.mood = 1; anim.moodLeft = 0;   // nextDelay() reads these
+    rcTyRender('', lang);
+    rc.scroll.scrollTop = rc.scroll.scrollLeft = 0;
+    T.phase = 'type';
+    if (!T.text.length) { T.typed[f.name] = ''; T.phase = 'gap'; T.wait = 300; }
+  }
+
+  function rcTypeStep(dt) {
+    const T = rcTy, lang = langOf(T.file.name);
+    T.acc += dt * (parseFloat(rcSpeedEl.value) || 1);
+    let end = T.pos;
+    for (let g = 0; g < 24 && T.acc >= T.due && end < T.text.length; g++) {
+      T.acc -= T.due;
+      end++;
+      const c = T.text.charCodeAt(end - 1);
+      if (c >= 0xD800 && c <= 0xDBFF && end < T.text.length) end++;
+      T.due = nextDelay(end);
+    }
+    if (T.acc > T.due) T.acc = T.due;
+    if (end > T.pos) {
+      T.pos = end;
+      rcTyRender(T.text.slice(0, end), lang);
+      rcTyPreview(false);
+    }
+    if (T.pos >= T.text.length) {
+      T.typed[T.file.name] = T.text;
+      rcTyPreview(true);
+      T.phase = 'gap'; T.wait = 700;
+    }
+  }
+
+  function rcBeginTest() {
+    const T = rcTy;
+    rcs.step = 'test'; rcUpdateSeq();
+    rc.note.textContent = 'Testing the finished page…';
+    T.count = 0; T.k = 0;
+    rc.frame.srcdoc = rcDoc(T.typed);
+    T.phase = 'test'; T.wait = 1300;
+  }
+  function rcDemoNext() {
+    const T = rcTy;
+    if (T.k >= Math.min(T.count, 4)) { T.phase = 'end'; T.wait = 3500; return; }
+    try { rc.frame.contentWindow.postMessage({ rcClick: T.k }, '*'); } catch (e) { /* ignore */ }
+    T.k++; T.phase = 'demo'; T.wait = 900;
+  }
+  function rcAdvance() {
+    const T = rcTy;
+    if (T.phase === 'gap') { if (T.fi + 1 < T.files.length) rcBeginFile(T.fi + 1); else rcBeginTest(); }
+    else if (T.phase === 'test' || T.phase === 'demo') rcDemoNext();
+    else if (T.phase === 'end') { T.run = false; if (rcs.state === 'recording') rcStopCapture(); }
+  }
+  function rcTick(now) {
+    const T = rcTy;
+    if (!T.run || T.paused) return;
+    const dt = Math.min(now - T.last, 100);
+    T.last = now;
+    if (T.phase === 'type') rcTypeStep(dt);
+    else { T.wait -= dt; if (T.wait <= 0) rcAdvance(); }
+    if (T.run && !T.paused) T.raf = requestAnimationFrame(rcTick);
+  }
+
+  function rcTyStart() {
+    const T = rcTy;
+    rcTyHalt();
+    T.files = current.files.slice().sort((a, b) => (RC_ORDER[langOf(a.name)] ?? 9) - (RC_ORDER[langOf(b.name)] ?? 9));
+    if (!T.files.length) return;
+    T.typed = {}; T.run = true; T.paused = false;
+    rc.frame.srcdoc = rcDoc({});
+    rcBeginFile(0);
+    T.last = performance.now();
+    T.raf = requestAnimationFrame(rcTick);
+  }
+  function rcTyHalt() { rcTy.run = false; rcTy.paused = false; cancelAnimationFrame(rcTy.raf); }
+  function rcTyPause() { if (!rcTy.run) return; rcTy.paused = true; cancelAnimationFrame(rcTy.raf); }
+  function rcTyResume() {
+    if (!rcTy.run || !rcTy.paused) return;
+    rcTy.paused = false; rcTy.last = performance.now();
+    rcTy.raf = requestAnimationFrame(rcTick);
+  }
+  /* Back to the normal read-only view of the real project */
+  function rcRestoreView() {
+    if (rcTy.run || !current || !rcs.open) return;
+    rcShowFile(current.files[0]);
+    rcRenderPreview();
+  }
 
   renderProjects();
 })();
